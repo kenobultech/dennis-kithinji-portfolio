@@ -3,7 +3,9 @@ import Post from '@/models/Post';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Tag, Clock, Terminal } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+// @ts-ignore
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+// @ts-ignore
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const isObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
