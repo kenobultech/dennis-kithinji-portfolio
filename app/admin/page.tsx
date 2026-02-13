@@ -17,7 +17,7 @@ import {
   Search, 
   XCircle,
   ShieldAlert,
-  Settings // <--- Added this import
+  Settings
 } from 'lucide-react';
 
 interface Post {
@@ -78,46 +78,53 @@ export default function AdminDashboard() {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6 font-sans">
+    // Updated padding: px-4 on mobile, px-6 on desktop
+    <div className="min-h-screen bg-black text-white pt-24 pb-20 px-4 sm:px-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-white/10 pb-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 border-b border-white/10 pb-6 gap-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]" />
                 <span className="text-xs font-mono text-green-500 tracking-widest">SYSTEM_ONLINE</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
-            <p className="text-gray-500 font-mono text-sm mt-1">
+            <p className="text-gray-500 font-mono text-sm mt-1 break-all">
               Operator: <span className="text-cyan-400">{session.user?.email || 'ROOT_USER'}</span>
             </p>
           </div>
           
           {/* --- HEADER ACTIONS --- */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Settings Link */}
+            {/* Mobile: Icon only, Desktop: Icon + Text. Flex-1 makes buttons even width on mobile */}
             <Link 
               href="/admin/settings"
-              className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-400 hover:bg-white/5 hover:text-cyan-400 rounded transition-colors text-sm font-mono uppercase"
+              className="flex-1 md:flex-none justify-center md:justify-start flex items-center gap-2 px-4 py-3 md:py-2 border border-white/10 text-gray-400 hover:bg-white/5 hover:text-cyan-400 rounded transition-colors text-sm font-mono uppercase"
+              title="System Configuration"
             >
-              <Settings size={14} /> System_Config
+              <Settings size={16} /> 
+              <span className="hidden sm:inline">System_Config</span>
             </Link>
 
             {/* Logout Button */}
             <button 
               onClick={() => signOut()}
-              className="flex items-center gap-2 px-4 py-2 border border-red-900/50 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded transition-colors text-sm font-mono uppercase"
+              className="flex-1 md:flex-none justify-center md:justify-start flex items-center gap-2 px-4 py-3 md:py-2 border border-red-900/50 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded transition-colors text-sm font-mono uppercase"
+              title="Terminate Session"
             >
-              <LogOut size={14} /> Terminate_Session
+              <LogOut size={16} /> 
+              <span className="hidden sm:inline">Terminate_Session</span>
             </button>
           </div>
         </div>
 
         {/* --- MODULES GRID --- */}
+        {/* Grid-cols-1 works perfectly for mobile naturally */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             
-            {/* 1. PROJECTS MODULE (NEW) */}
+            {/* 1. PROJECTS MODULE */}
             <div className="bg-[#0a0a0a] border border-white/10 p-6 rounded-lg group hover:border-cyan-500/50 transition-colors relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                     <ShieldAlert size={100} />
@@ -181,11 +188,11 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* --- BLOG POSTS LIST (Kept for quick access) --- */}
+        {/* --- BLOG POSTS LIST --- */}
         <div className="bg-[#0a0a0a] border border-white/10 rounded-lg overflow-hidden">
           
-          {/* List Header */}
-          <div className="p-4 bg-white/5 border-b border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* List Header: Flex wrap added to prevent overlap */}
+          <div className="p-4 bg-white/5 border-b border-white/10 flex flex-wrap sm:flex-nowrap justify-between items-center gap-4">
             <div className="flex items-center gap-4 w-full sm:w-auto">
                 <span className="font-mono text-xs text-cyan-500 uppercase tracking-widest whitespace-nowrap">
                     // Recent_Logs
@@ -228,20 +235,23 @@ export default function AdminDashboard() {
             <ul className="divide-y divide-white/5">
               {filteredPosts.map((post) => (
                 <li key={post._id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-white/5 rounded text-gray-500 group-hover:text-cyan-400 transition-colors">
+                  
+                  {/* Title and ID container */}
+                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                    <div className="shrink-0 p-2 bg-white/5 rounded text-gray-500 group-hover:text-cyan-400 transition-colors">
                         <FileText size={18} />
                     </div>
-                    <div>
-                        <Link href={`/blog/${post._id}`} className="font-medium text-gray-200 group-hover:text-cyan-400 transition-colors block">
+                    <div className="min-w-0"> {/* min-w-0 is crucial for text truncation in flex */}
+                        <Link href={`/blog/${post._id}`} className="font-medium text-gray-200 group-hover:text-cyan-400 transition-colors block truncate">
                             {post.title}
                         </Link>
                         <span className="text-xs text-gray-600 font-mono">ID: {post._id.slice(-6)}</span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6">
-                    <span className="text-xs text-gray-500 font-mono hidden sm:block">
+                  {/* Date and Delete Action */}
+                  <div className="flex items-center gap-3 sm:gap-6 shrink-0 pl-2">
+                    <span className="text-xs text-gray-500 font-mono hidden sm:block whitespace-nowrap">
                       {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                     <button onClick={() => handleDelete(post._id)} className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-900/20 rounded transition-all">
