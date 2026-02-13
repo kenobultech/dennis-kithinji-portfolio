@@ -17,12 +17,14 @@ import {
   Search, 
   XCircle,
   ShieldAlert,
-  Settings
+  Settings,
+  Eye
 } from 'lucide-react';
 
 interface Post {
   _id: string;
   title: string;
+  slug: string; // Added slug to interface for preview link
   createdAt: string;
 }
 
@@ -78,7 +80,6 @@ export default function AdminDashboard() {
   if (!session) return null;
 
   return (
-    // Updated padding: px-4 on mobile, px-6 on desktop
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-4 sm:px-6 font-sans">
       <div className="max-w-7xl mx-auto">
         
@@ -97,8 +98,6 @@ export default function AdminDashboard() {
           
           {/* --- HEADER ACTIONS --- */}
           <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Settings Link */}
-            {/* Mobile: Icon only, Desktop: Icon + Text. Flex-1 makes buttons even width on mobile */}
             <Link 
               href="/admin/settings"
               className="flex-1 md:flex-none justify-center md:justify-start flex items-center gap-2 px-4 py-3 md:py-2 border border-white/10 text-gray-400 hover:bg-white/5 hover:text-cyan-400 rounded transition-colors text-sm font-mono uppercase"
@@ -108,7 +107,6 @@ export default function AdminDashboard() {
               <span className="hidden sm:inline">System_Config</span>
             </Link>
 
-            {/* Logout Button */}
             <button 
               onClick={() => signOut()}
               className="flex-1 md:flex-none justify-center md:justify-start flex items-center gap-2 px-4 py-3 md:py-2 border border-red-900/50 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded transition-colors text-sm font-mono uppercase"
@@ -121,7 +119,6 @@ export default function AdminDashboard() {
         </div>
 
         {/* --- MODULES GRID --- */}
-        {/* Grid-cols-1 works perfectly for mobile naturally */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             
             {/* 1. PROJECTS MODULE */}
@@ -191,7 +188,7 @@ export default function AdminDashboard() {
         {/* --- BLOG POSTS LIST --- */}
         <div className="bg-[#0a0a0a] border border-white/10 rounded-lg overflow-hidden">
           
-          {/* List Header: Flex wrap added to prevent overlap */}
+          {/* List Header */}
           <div className="p-4 bg-white/5 border-b border-white/10 flex flex-wrap sm:flex-nowrap justify-between items-center gap-4">
             <div className="flex items-center gap-4 w-full sm:w-auto">
                 <span className="font-mono text-xs text-cyan-500 uppercase tracking-widest whitespace-nowrap">
@@ -234,27 +231,52 @@ export default function AdminDashboard() {
           ) : (
             <ul className="divide-y divide-white/5">
               {filteredPosts.map((post) => (
-                <li key={post._id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
+                <li key={post._id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-colors group gap-4">
                   
                   {/* Title and ID container */}
-                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                  <div className="flex items-center gap-3 sm:gap-4 overflow-hidden w-full">
                     <div className="shrink-0 p-2 bg-white/5 rounded text-gray-500 group-hover:text-cyan-400 transition-colors">
                         <FileText size={18} />
                     </div>
-                    <div className="min-w-0"> {/* min-w-0 is crucial for text truncation in flex */}
-                        <Link href={`/blog/${post._id}`} className="font-medium text-gray-200 group-hover:text-cyan-400 transition-colors block truncate">
+                    <div className="min-w-0 flex-1"> 
+                        <Link href={`/blog/${post.slug || post._id}`} className="font-medium text-gray-200 group-hover:text-cyan-400 transition-colors block truncate">
                             {post.title}
                         </Link>
                         <span className="text-xs text-gray-600 font-mono">ID: {post._id.slice(-6)}</span>
                     </div>
                   </div>
                   
-                  {/* Date and Delete Action */}
-                  <div className="flex items-center gap-3 sm:gap-6 shrink-0 pl-2">
-                    <span className="text-xs text-gray-500 font-mono hidden sm:block whitespace-nowrap">
+                  {/* Actions Row */}
+                  <div className="flex items-center gap-2 sm:gap-4 shrink-0 pl-11 sm:pl-0">
+                    {/* Date */}
+                    <span className="text-xs text-gray-500 font-mono hidden md:block whitespace-nowrap mr-2">
                       {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
-                    <button onClick={() => handleDelete(post._id)} className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-900/20 rounded transition-all">
+
+                    {/* View Public */}
+                    <Link 
+                      href={`/blog/${post.slug || post._id}`}
+                      className="p-2 text-gray-500 hover:text-cyan-400 hover:bg-cyan-900/10 rounded transition-all"
+                      title="View Public Post"
+                    >
+                      <Eye size={16} />
+                    </Link>
+
+                    {/* Edit Button - LINKS TO YOUR NEW EDIT PAGE */}
+                    <Link 
+                      href={`/admin/edit/${post._id}`}
+                      className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 rounded transition-all"
+                      title="Edit Entry"
+                    >
+                      <Edit size={16} />
+                    </Link>
+
+                    {/* Delete Button */}
+                    <button 
+                      onClick={() => handleDelete(post._id)} 
+                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-all"
+                      title="Delete Entry"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>

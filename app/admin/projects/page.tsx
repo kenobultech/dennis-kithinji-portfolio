@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trash2, Plus, Save, Edit, X, FolderOpen, CheckCircle, AlertTriangle, Terminal } from 'lucide-react';
+import { 
+  Trash2, 
+  Plus, 
+  Save, 
+  Edit, 
+  X, 
+  FolderOpen, 
+  CheckCircle, 
+  AlertTriangle, 
+  Terminal, 
+  Command 
+} from 'lucide-react';
 
 // --- TOAST TYPES ---
 type ToastType = 'success' | 'error' | null;
@@ -9,6 +20,25 @@ interface ToastState {
   show: boolean;
   message: string;
   type: ToastType;
+}
+
+// --- INITIAL STATE ---
+function initialFormState() {
+    return {
+        title: '', 
+        slug: '', 
+        shortDescription: '', 
+        longDescription: '',
+        status: 'Public', 
+        tags: [],
+        githubLink: '', 
+        demoLink: '',
+        howItWorks: [], 
+        features: [],
+        techStack: [],
+        // UPDATED: Now an empty array for dynamic steps
+        installation: [] 
+    };
 }
 
 export default function AdminProjects() {
@@ -31,7 +61,7 @@ export default function AdminProjects() {
     setToast({ show: true, message, type });
     setTimeout(() => {
       setToast((prev) => ({ ...prev, show: false }));
-    }, 4000); // Disappears after 4 seconds
+    }, 4000);
   };
 
   const fetchProjects = async () => {
@@ -53,14 +83,11 @@ export default function AdminProjects() {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleNestedChange = (parent: string, key: string, value: string) => {
-    setFormData({ ...formData, [parent]: { ...formData[parent], [key]: value } });
-  };
-
   const handleArrayChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value.split(',').map(item => item.trim()) });
   };
   
+  // --- TECH STACK HANDLERS ---
   const addTechStack = () => {
     setFormData({ ...formData, techStack: [...formData.techStack, { name: '', useCase: '' }] });
   };
@@ -74,6 +101,25 @@ export default function AdminProjects() {
   const removeTechStack = (index: number) => {
      const newStack = formData.techStack.filter((_: any, i: number) => i !== index);
      setFormData({ ...formData, techStack: newStack });
+  };
+
+  // --- INSTALLATION HANDLERS (NEW) ---
+  const addInstallationStep = () => {
+    setFormData({ 
+        ...formData, 
+        installation: [...(formData.installation || []), { title: '', command: '' }] 
+    });
+  };
+
+  const updateInstallation = (index: number, key: string, value: string) => {
+    const newInst = [...formData.installation];
+    newInst[index][key] = value;
+    setFormData({ ...formData, installation: newInst });
+  };
+
+  const removeInstallation = (index: number) => {
+    const newInst = formData.installation.filter((_: any, i: number) => i !== index);
+    setFormData({ ...formData, installation: newInst });
   };
 
   // --- SUBMIT ---
@@ -119,7 +165,12 @@ export default function AdminProjects() {
   };
 
   const editProject = (project: any) => {
-    setFormData(project);
+    // Ensure installation is an array (handle legacy data gracefully)
+    const cleanProject = {
+        ...project,
+        installation: Array.isArray(project.installation) ? project.installation : []
+    };
+    setFormData(cleanProject);
     setIsEditing(true);
   };
 
@@ -183,12 +234,55 @@ export default function AdminProjects() {
                 <input placeholder="Tags (comma separated)" onBlur={(e) => handleArrayChange('tags', e.target.value)} defaultValue={formData.tags.join(', ')} className="input-field" />
             </div>
 
-            {/* Installation */}
-            <h3 className="text-cyan-400 font-mono text-sm mt-6 border-b border-white/10 pb-2">Installation Protocols</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input value={formData.installation.clone} onChange={(e) => handleNestedChange('installation', 'clone', e.target.value)} placeholder="Git Clone..." className="input-field" />
-                <input value={formData.installation.install} onChange={(e) => handleNestedChange('installation', 'install', e.target.value)} placeholder="npm install..." className="input-field" />
-                <input value={formData.installation.run} onChange={(e) => handleNestedChange('installation', 'run', e.target.value)} placeholder="npm run dev..." className="input-field" />
+            {/* --- INSTALLATION PROTOCOLS (DYNAMIC) --- */}
+            <div className="space-y-3 bg-white/5 p-4 rounded-lg border border-white/5">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-cyan-400 font-mono text-sm flex items-center gap-2">
+                        <Command size={14} /> Installation Protocols
+                    </h3>
+                    <button 
+                        type="button" 
+                        onClick={addInstallationStep} 
+                        className="text-xs bg-cyan-900/50 text-cyan-200 border border-cyan-500/30 px-3 py-1 rounded hover:bg-cyan-500 hover:text-black transition-colors"
+                    >
+                        + Add Step
+                    </button>
+                </div>
+
+                {(!formData.installation || formData.installation.length === 0) && (
+                    <div className="text-center py-4 text-gray-600 text-xs font-mono border border-dashed border-white/10 rounded">
+                        No installation steps defined.
+                    </div>
+                )}
+
+                {formData.installation?.map((step: any, idx: number) => (
+                    <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-black/40 p-2 rounded border border-white/5">
+                        <span className="text-gray-500 font-mono text-xs w-6 pt-3 sm:pt-0">0{idx + 1}</span>
+                        
+                        <input 
+                            value={step.title} 
+                            onChange={(e) => updateInstallation(idx, 'title', e.target.value)} 
+                            placeholder="Step Name (e.g. Clone Repo)" 
+                            className="input-field sm:w-1/3" 
+                        />
+                        
+                        <div className="flex-1 flex gap-2 w-full">
+                            <input 
+                                value={step.command} 
+                                onChange={(e) => updateInstallation(idx, 'command', e.target.value)} 
+                                placeholder="Command (e.g. git clone ...)" 
+                                className="input-field w-full font-mono text-cyan-600 text-sm" 
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => removeInstallation(idx)} 
+                                className="text-gray-500 hover:text-red-500 px-2 transition-colors"
+                            >
+                                <X size={16}/>
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Tech Stack (Dynamic) */}
@@ -313,16 +407,4 @@ export default function AdminProjects() {
       `}</style>
     </div>
   );
-}
-
-// Initial State Helper
-function initialFormState() {
-    return {
-        title: '', slug: '', shortDescription: '', longDescription: '',
-        status: 'Public', tags: [],
-        githubLink: '', demoLink: '',
-        howItWorks: [], features: [],
-        techStack: [],
-        installation: { clone: '', install: '', run: '' }
-    };
 }

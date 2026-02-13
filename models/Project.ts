@@ -1,40 +1,39 @@
-// src/models/Project.ts
 import mongoose, { Schema, model, models } from 'mongoose';
 
 const ProjectSchema = new Schema({
   title: { type: String, required: true },
-  slug: { type: String, required: true, unique: true }, // e.g., 'afriskana'
-  shortDescription: { type: String, required: true }, // For the card view
-  longDescription: { type: String, required: true }, // For the detail page hero
+  slug: { type: String, required: true, unique: true },
+  shortDescription: { type: String, required: true },
+  longDescription: { type: String, required: true },
   
   // Links
   githubLink: { type: String },
   demoLink: { type: String },
 
   // Metadata
-  status: { type: String, default: 'Public' }, // Public, Private, In Progress
-  tags: [String], // ['Python', 'Flask']
+  status: { type: String, default: 'Public' },
+  tags: [String],
   
-  // For the Detail Page
-  howItWorks: [String], // Array of steps
+  howItWorks: [String],
   features: [{
     title: String,
     description: String
   }],
   techStack: [{
     name: String,
-    useCase: String, // e.g., "Backend Server"
-    color: String // optional, for the progress bar color
+    useCase: String,
+    color: String
   }],
-  installation: {
-    clone: String,
-    install: String,
-    run: String
-  },
+
+  // --- UPDATED SECTION ---
+  // Changed from a fixed object to an Array of Objects
+  installation: [{
+    title: String,   // e.g., "Clone Repository"
+    command: String  // e.g., "git clone https://..."
+  }],
+  // -----------------------
   
   createdAt: { type: Date, default: Date.now },
 });
 
-const Project = models.Project || model('Project', ProjectSchema);
-
-export default Project;
+export default mongoose.models.Project || mongoose.model('Project', ProjectSchema);
