@@ -5,14 +5,17 @@ import Post from '@/models/Post';
 // DELETE: Remove a post by ID
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  // FIX 1: Type 'params' as a Promise
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await dbConnect();
   try {
-    const { id } = params;
+    // FIX 2: Await the params object to get the ID
+    const { id } = await params;
+
     const deletedPost = await Post.deleteOne({ _id: id });
     
-    if (!deletedPost) {
+    if (!deletedPost || deletedPost.deletedCount === 0) {
       return NextResponse.json({ success: false }, { status: 404 });
     }
     
