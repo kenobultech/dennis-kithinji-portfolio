@@ -2,7 +2,14 @@
 
 import { useState, useEffect, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { UploadCloud, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { 
+  UploadCloud, 
+  Image as ImageIcon, 
+  Loader2, 
+  CheckCircle, 
+  XCircle, 
+  X 
+} from 'lucide-react';
 
 // Define the interface for your Post data
 interface PostData {
@@ -14,6 +21,13 @@ interface PostData {
   tags: string; 
 }
 
+// Interface for the Toast State
+interface ToastState {
+  show: boolean;
+  message: string;
+  type: 'success' | 'error';
+}
+
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -23,8 +37,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
   // States
   const [loading, setLoading] = useState(true);
-  const [uploadingFeature, setUploadingFeature] = useState(false); // For main cover image
-  const [uploadingMarkdown, setUploadingMarkdown] = useState(false); // For inline images
+  const [uploadingFeature, setUploadingFeature] = useState(false); 
+  const [uploadingMarkdown, setUploadingMarkdown] = useState(false); 
+
+  // --- NEW: Toast State ---
+  const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
 
   // Feature Image Management
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -38,6 +55,15 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     image: '',
     tags: '',
   });
+
+  // --- NEW: Helper to show toast ---
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ show: true, message, type });
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 4000);
+  };
 
   // 1. Fetch the existing data
   useEffect(() => {
@@ -53,10 +79,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           });
           if (data.data.image) setImagePreview(data.data.image);
         } else {
-          alert('Failed to fetch post');
+          showToast('Failed to fetch post data from database', 'error');
         }
       } catch (error) {
         console.error('Error fetching post:', error);
+        showToast('Network error while fetching post', 'error');
       } finally {
         setLoading(false);
       }
@@ -71,14 +98,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 3. Handle Feature File Selection (Main Cover)
-  const handleFeatureFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+
 
   // 4. Helper: Upload to Cloudinary
   const uploadToCloudinary = async (file: File): Promise<string | null> => {
@@ -86,7 +106,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert('Cloudinary environment variables are missing.');
+      showToast('System Error: Cloudinary config missing', 'error');
       return null;
     }
 
@@ -113,22 +133,20 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     if (!file) return;
 
     setUploadingMarkdown(true);
-
     const url = await uploadToCloudinary(file);
 
     if (url) {
-      // Append the markdown image syntax to the content
       const imageMarkdown = `\n![${file.name}](${url})\n`;
       setFormData((prev) => ({
         ...prev,
         content: prev.content + imageMarkdown
       }));
+      showToast('Image inserted into content successfully', 'success');
     } else {
-      alert('Failed to upload image to Markdown');
+      showToast('Failed to upload inline image', 'error');
     }
 
     setUploadingMarkdown(false);
-    // Reset input so same file can be selected again if needed
     if (markdownFileRef.current) markdownFileRef.current.value = '';
   };
 
@@ -145,7 +163,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       setUploadingFeature(false);
 
       if (!uploadedUrl) {
-        alert('Feature image upload failed. Changes not saved.');
+        showToast('Feature image upload failed. Aborting save.', 'error');
         return;
       }
       finalImageUrl = uploadedUrl;
@@ -169,20 +187,51 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
       const result = await res.json();
 
       if (result.success) {
-        router.push('/admin');
-        router.refresh();
+        showToast('System Log updated successfully. Redirecting...', 'success');
+        
+        // Wait 1.5s before redirecting so user sees the toast
+        setTimeout(() => {
+          router.push('/admin');
+          router.refresh();
+        }, 1500);
       } else {
-        alert('Update failed: ' + JSON.stringify(result.error));
+        showToast(`Update Failed: ${result.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error updating post:', error);
+      showToast('Critical Error: Failed to connect to server', 'error');
     }
   };
 
   if (loading) return <div className="text-white p-10 font-mono">Loading database entry...</div>;
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 sm:p-8 font-sans">
+    <div className="min-h-screen bg-black text-white p-4 sm:p-8 font-sans relative">
+      
+      {/* --- CUSTOM TOAST NOTIFICATION COMPONENT --- */}
+      {toast.show && (
+        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-lg border backdrop-blur-md shadow-2xl transition-all duration-300 animate-in slide-in-from-top-5 fade-in ${
+          toast.type === 'success' 
+            ? 'bg-green-950/30 border-green-500/50 text-green-400' 
+            : 'bg-red-950/30 border-red-500/50 text-red-400'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
+          <div className="flex flex-col">
+            <span className="font-bold font-mono uppercase text-xs tracking-wider">
+              {toast.type === 'success' ? 'Success' : 'Error'}
+            </span>
+            <span className="text-sm">{toast.message}</span>
+          </div>
+          <button 
+            onClick={() => setToast(prev => ({ ...prev, show: false }))} 
+            className="ml-4 opacity-50 hover:opacity-100"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      {/* ------------------------------------------- */}
+
       <div className="max-w-4xl mx-auto border border-white/10 bg-[#0a0a0a] p-6 sm:p-8 rounded-xl shadow-2xl">
         <h1 className="text-3xl font-bold mb-8 text-cyan-400">Edit System Log (Post)</h1>
         
@@ -239,8 +288,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
               required
             />
           </div>
-
-         
 
           {/* --- CONTENT (MARKDOWN) WITH IMAGE BUTTON --- */}
           <div className="relative group">
