@@ -85,10 +85,21 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     fetchPost();
   }, [id]);
 
-  // 2. Handle Text Input Changes
+ 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Special handling for Slug to make it URL friendly
+    if (name === 'slug') {
+      const formattedSlug = value
+        .toLowerCase()            
+        .replace(/\s+/g, '-')     
+        .replace(/[^\w-]/g, '');  
+
+      setFormData((prev) => ({ ...prev, [name]: formattedSlug }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   // 3. Upload Helper (Uses your new /api/upload route)
