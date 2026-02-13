@@ -131,7 +131,7 @@ export default function AdminProjects() {
         <div className="flex justify-between items-center mb-10 border-b border-white/10 pb-6">
           <div className="flex items-center gap-3">
              <Terminal className="text-cyan-500" />
-             <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">Admin // Projects</h1>
+             <h1 className="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-white to-gray-500">Admin // Projects</h1>
           </div>
           {!isEditing && (
             <button 
@@ -146,7 +146,7 @@ export default function AdminProjects() {
         {/* --- EDIT/CREATE FORM --- */}
         {isEditing ? (
           <form onSubmit={handleSubmit} className="bg-[#0a0a0a] p-8 rounded-xl border border-white/10 space-y-6 shadow-2xl relative animate-in fade-in slide-in-from-bottom-4">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-t-xl" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-cyan-500 to-blue-600 rounded-t-xl" />
             <div className="flex justify-between">
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                     <Edit size={18} className="text-cyan-400"/> Project Editor

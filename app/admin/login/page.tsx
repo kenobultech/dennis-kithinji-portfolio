@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Lock, Terminal, Loader2 } from 'lucide-react';
+import { Lock, Terminal, Loader2, User } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,9 +17,10 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    // Changed 'email' to 'username' to match backend credentials provider
     const res = await signIn('credentials', {
       redirect: false,
-      email,
+      username, 
       password,
     });
 
@@ -52,19 +53,24 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           
           <div className="space-y-2">
-            <label className="text-xs font-mono text-cyan-500">USER_ID</label>
+            <label className="text-xs font-mono text-cyan-500 flex items-center gap-2">
+                <User size={12} /> USERNAME
+            </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-black border border-white/10 rounded p-3 text-white focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all font-mono"
-              placeholder="admin@system.local"
+              placeholder="root_admin"
               required
+              autoFocus
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-mono text-cyan-500">PASSPHRASE</label>
+            <label className="text-xs font-mono text-cyan-500 flex items-center gap-2">
+                <Lock size={12} /> PASSPHRASE
+            </label>
             <input
               type="password"
               value={password}

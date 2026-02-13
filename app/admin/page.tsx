@@ -16,7 +16,8 @@ import {
   Terminal,
   Search, 
   XCircle,
-  ShieldAlert // Added for Projects
+  ShieldAlert,
+  Settings // <--- Added this import
 } from 'lucide-react';
 
 interface Post {
@@ -93,12 +94,24 @@ export default function AdminDashboard() {
             </p>
           </div>
           
-          <button 
-            onClick={() => signOut()}
-            className="flex items-center gap-2 px-4 py-2 border border-red-900/50 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded transition-colors text-sm font-mono uppercase"
-          >
-            <LogOut size={14} /> Terminate_Session
-          </button>
+          {/* --- HEADER ACTIONS --- */}
+          <div className="flex items-center gap-3">
+            {/* Settings Link */}
+            <Link 
+              href="/admin/settings"
+              className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-400 hover:bg-white/5 hover:text-cyan-400 rounded transition-colors text-sm font-mono uppercase"
+            >
+              <Settings size={14} /> System_Config
+            </Link>
+
+            {/* Logout Button */}
+            <button 
+              onClick={() => signOut()}
+              className="flex items-center gap-2 px-4 py-2 border border-red-900/50 text-red-500 hover:bg-red-950/30 hover:text-red-400 rounded transition-colors text-sm font-mono uppercase"
+            >
+              <LogOut size={14} /> Terminate_Session
+            </button>
+          </div>
         </div>
 
         {/* --- MODULES GRID --- */}

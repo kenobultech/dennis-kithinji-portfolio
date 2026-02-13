@@ -6,7 +6,8 @@ import Link from 'next/link';
 export default function Home() {
   return (
     // Min-h adjusted to 85vh to center nicely within the layout padding
-    <section className="relative min-h-[85vh] flex items-center justify-center px-6 overflow-hidden bg-black">
+    // Added py-12 to ensure content isn't cut off on smaller screens if it exceeds height
+    <section className="relative min-h-[85vh] flex items-center justify-center px-6 py-12 lg:py-0 overflow-hidden bg-black">
       
       {/* Glow Effect behind the hero content */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full z-0" />
@@ -93,7 +94,8 @@ export default function Home() {
         </div>
 
         {/* RIGHT COLUMN: TERMINAL */}
-        <div className="relative group hidden lg:block">
+        {/* Update: Removed 'hidden lg:block' so it displays on mobile */}
+        <div className="relative group w-full">
            {/* Decorative Grid behind terminal */}
            <div className="absolute -inset-4 bg-linear-to-r from-cyan-500 to-blue-600 rounded-xl opacity-20 blur-lg group-hover:opacity-30 transition duration-1000"></div>
            
