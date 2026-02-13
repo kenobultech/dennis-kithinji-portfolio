@@ -8,7 +8,7 @@ import {
   Loader2, 
   CheckCircle, 
   XCircle, 
-  X 
+  X
 } from 'lucide-react';
 
 // Define the interface for your Post data
@@ -17,11 +17,11 @@ interface PostData {
   slug: string;
   summary: string;
   content: string;
-  image: string;
+  image: string; // This is the database field we need to sync
   tags: string; 
 }
 
-// Interface for the Toast State
+// Toast Interface
 interface ToastState {
   show: boolean;
   message: string;
@@ -32,20 +32,15 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params);
   const router = useRouter();
   
-  // Refs for file inputs
+  // Refs
   const markdownFileRef = useRef<HTMLInputElement>(null);
 
   // States
   const [loading, setLoading] = useState(true);
-  const [uploadingFeature, setUploadingFeature] = useState(false); 
   const [uploadingMarkdown, setUploadingMarkdown] = useState(false); 
 
-  // --- NEW: Toast State ---
+  // Toast State
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', type: 'success' });
-
-  // Feature Image Management
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<PostData>({
     title: '',
@@ -56,10 +51,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     tags: '',
   });
 
-  // --- NEW: Helper to show toast ---
+  // Helper: Show Toast
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ show: true, message, type });
-    // Auto-hide after 4 seconds
     setTimeout(() => {
       setToast((prev) => ({ ...prev, show: false }));
     }, 4000);
@@ -77,9 +71,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             ...data.data,
             tags: data.data.tags ? data.data.tags.join(', ') : '',
           });
-          if (data.data.image) setImagePreview(data.data.image);
         } else {
-          showToast('Failed to fetch post data from database', 'error');
+          showToast('Failed to fetch post data', 'error');
         }
       } catch (error) {
         console.error('Error fetching post:', error);
@@ -98,85 +91,69 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-
-
-  // 4. Helper: Upload to Cloudinary
-  const uploadToCloudinary = async (file: File): Promise<string | null> => {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      showToast('System Error: Cloudinary config missing', 'error');
-      return null;
-    }
-
+  // 3. Upload Helper (Uses your new /api/upload route)
+  const uploadViaApi = async (file: File): Promise<string | null> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
 
     try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
+
       const data = await res.json();
-      return data.secure_url;
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      return data.url;
     } catch (error) {
-      console.error('Cloudinary upload error:', error);
+      console.error('API upload error:', error);
       return null;
     }
   };
 
-  // 5. Handle Markdown Inline Image Upload
+  // 4. Handle Markdown Image Upload (The Important Part)
   const handleMarkdownImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingMarkdown(true);
-    const url = await uploadToCloudinary(file);
+    
+    // Upload the file
+    const url = await uploadViaApi(file);
 
     if (url) {
+      // 1. Insert into Markdown content
       const imageMarkdown = `\n![${file.name}](${url})\n`;
+      
+      // 2. Update State
       setFormData((prev) => ({
         ...prev,
-        content: prev.content + imageMarkdown
+        content: prev.content + imageMarkdown,
+        image: url // <--- AUTOMATICALLY SYNC THE DB IMAGE FIELD HERE
       }));
-      showToast('Image inserted into content successfully', 'success');
+
+      showToast('Image uploaded & synced successfully', 'success');
     } else {
-      showToast('Failed to upload inline image', 'error');
+      showToast('Failed to upload image', 'error');
     }
 
     setUploadingMarkdown(false);
+    // Reset input so you can upload the same file again if needed
     if (markdownFileRef.current) markdownFileRef.current.value = '';
   };
 
-  // 6. Submit Updates
+  // 5. Submit Updates
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    let finalImageUrl = formData.image;
-
-    // A. Upload Feature Image if changed
-    if (selectedFile) {
-      setUploadingFeature(true);
-      const uploadedUrl = await uploadToCloudinary(selectedFile);
-      setUploadingFeature(false);
-
-      if (!uploadedUrl) {
-        showToast('Feature image upload failed. Aborting save.', 'error');
-        return;
-      }
-      finalImageUrl = uploadedUrl;
-    }
-
-    // B. Prepare Payload
+    // Prepare Payload
     const payload = {
       ...formData,
-      image: finalImageUrl,
+      // Ensure tags are an array
       tags: formData.tags.split(',').map((tag) => tag.trim()).filter((t) => t !== ''),
     };
 
-    // C. Update Database
+    // Update Database
     try {
       const res = await fetch(`/api/posts/${id}`, {
         method: 'PUT',
@@ -188,8 +165,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
       if (result.success) {
         showToast('System Log updated successfully. Redirecting...', 'success');
-        
-        // Wait 1.5s before redirecting so user sees the toast
         setTimeout(() => {
           router.push('/admin');
           router.refresh();
@@ -208,29 +183,19 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="min-h-screen bg-black text-white p-4 sm:p-8 font-sans relative">
       
-      {/* --- CUSTOM TOAST NOTIFICATION COMPONENT --- */}
+      {/* Toast */}
       {toast.show && (
-        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-lg border backdrop-blur-md shadow-2xl transition-all duration-300 animate-in slide-in-from-top-5 fade-in ${
-          toast.type === 'success' 
-            ? 'bg-green-950/30 border-green-500/50 text-green-400' 
-            : 'bg-red-950/30 border-red-500/50 text-red-400'
+        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-lg border backdrop-blur-md shadow-2xl animate-in slide-in-from-top-5 fade-in ${
+          toast.type === 'success' ? 'bg-green-950/30 border-green-500/50 text-green-400' : 'bg-red-950/30 border-red-500/50 text-red-400'
         }`}>
           {toast.type === 'success' ? <CheckCircle size={20} /> : <XCircle size={20} />}
           <div className="flex flex-col">
-            <span className="font-bold font-mono uppercase text-xs tracking-wider">
-              {toast.type === 'success' ? 'Success' : 'Error'}
-            </span>
+            <span className="font-bold font-mono uppercase text-xs tracking-wider">{toast.type === 'success' ? 'Success' : 'Error'}</span>
             <span className="text-sm">{toast.message}</span>
           </div>
-          <button 
-            onClick={() => setToast(prev => ({ ...prev, show: false }))} 
-            className="ml-4 opacity-50 hover:opacity-100"
-          >
-            <X size={16} />
-          </button>
+          <button onClick={() => setToast(prev => ({ ...prev, show: false }))} className="ml-4 opacity-50 hover:opacity-100"><X size={16} /></button>
         </div>
       )}
-      {/* ------------------------------------------- */}
 
       <div className="max-w-4xl mx-auto border border-white/10 bg-[#0a0a0a] p-6 sm:p-8 rounded-xl shadow-2xl">
         <h1 className="text-3xl font-bold mb-8 text-cyan-400">Edit System Log (Post)</h1>
@@ -250,7 +215,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             />
           </div>
 
-          {/* Slug & Tags Row */}
+          {/* Slug & Tags */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label className="block text-gray-400 mb-2 font-mono text-sm">Slug (URL)</label>
@@ -270,7 +235,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 name="tags"
                 value={formData.tags}
                 onChange={handleChange}
-                placeholder="security, network, coding"
                 className="w-full bg-[#111] border border-white/20 rounded p-3 text-white focus:border-cyan-500 outline-none transition-colors"
                 />
             </div>
@@ -289,9 +253,14 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             />
           </div>
 
-          {/* --- CONTENT (MARKDOWN) WITH IMAGE BUTTON --- */}
+          {/* Content */}
           <div className="relative group">
-            <label className="block text-gray-400 mb-2 font-mono text-sm">Content (Markdown)</label>
+            <div className="flex justify-between items-end mb-2">
+                <label className="block text-gray-400 font-mono text-sm">Content (Markdown)</label>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest">
+                    To update image: delete old line, upload new.
+                </span>
+            </div>
             
             <textarea
               name="content"
@@ -302,7 +271,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
               required
             />
 
-            {/* FLOATING MARKDOWN IMAGE BUTTON */}
+            {/* FLOATING UPLOAD BUTTON */}
             <div className="absolute bottom-4 right-4 z-10">
                 <input 
                     type="file" 
@@ -316,22 +285,22 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     onClick={() => markdownFileRef.current?.click()}
                     disabled={uploadingMarkdown}
                     className="flex items-center gap-2 bg-zinc-800 hover:bg-cyan-900/80 text-gray-300 hover:text-cyan-400 px-3 py-2 rounded-lg border border-white/10 hover:border-cyan-500/50 transition-all text-xs font-mono uppercase shadow-xl backdrop-blur-sm"
-                    title="Insert Image into Markdown"
                 >
                     {uploadingMarkdown ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                    {uploadingMarkdown ? 'Uploading...' : 'Insert Image'}
+                    {uploadingMarkdown ? 'Uploading...' : 'Insert New Image'}
                 </button>
             </div>
           </div>
 
-          {/* Buttons */}
+          {/* Submit Buttons */}
           <div className="flex gap-4 pt-4 border-t border-white/10">
             <button
               type="submit"
-              disabled={uploadingFeature || uploadingMarkdown}
+              disabled={uploadingMarkdown}
               className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-900 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all flex items-center gap-2"
             >
-              {uploadingFeature ? 'Uploading Cover...' : 'Update Database'}
+              {uploadingMarkdown ? <Loader2 className="animate-spin" /> : <UploadCloud size={20} />}
+              Update Database
             </button>
             <button
               type="button"
